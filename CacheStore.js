@@ -1,42 +1,66 @@
-// crete a a Genric Type script class 
-var CacheStore = /** @class */ (function () {
-    function CacheStore(entries) {
-        this.limitentries = entries;
-        this.map = new Map();
+"use strict";
+exports.__esModule = true;
+exports.DataNode = exports.DataCache = void 0;
+var DataNode = /** @class */ (function () {
+    function DataNode(key, val) {
+        this.key = key;
+        this.value = val;
     }
-    CacheStore.prototype.setCache = function (key, value) {
-        if (this.map.size >= this.limitentries) {
-            var keyToRemove = this.map.keys().next().value;
-            this.map["delete"](keyToRemove);
-        }
-        this.map.set(key, value);
-    };
-    CacheStore.prototype.getCache = function (key) {
-        if (this.map.has(key)) {
-            var value = this.map.get(key);
-            this.map["delete"](key); // LRU
-            this.map.set(key, value);
-            return this.map.get(key);
-        }
-        return "Key doesn't exist";
-    };
-    CacheStore.prototype.cacheSize = function () {
-        return this.map.size;
-    };
-    return CacheStore;
+    return DataNode;
 }());
-var cache = new CacheStore(2);
-cache.setCache('score1', 100);
-cache.setCache('score2', 200);
-cache.setCache('score3', 300);
-cache.setCache('score4', 400);
-cache.setCache('score5', 500);
-cache.setCache('score6', 600);
-cache.setCache('score7', 700);
-cache.setCache('score8', 800);
-cache.setCache('score9', 900);
-console.log(cache.getCache('score8'));
-console.log(cache.getCache('score9'));
-console.log(cache.cacheSize());
-console.log(cache.getCache('score7'));
-console.log(cache.getCache('score6'));
+exports.DataNode = DataNode;
+var DataCache = /** @class */ (function () {
+    function DataCache() {
+        this.length = 0;
+        this.head = null;
+        this.tail = null;
+    }
+    DataCache.prototype.append = function (key, val) {
+        var newNode = new DataNode(key, val);
+        if (!this.head) {
+            this.head = newNode;
+            this.tail = this.head;
+            this.length++;
+            return newNode;
+        }
+        newNode.prev = this.tail;
+        this.tail.next = newNode;
+        this.tail = newNode;
+        this.length++;
+        return newNode;
+    };
+    DataCache.prototype.makerecent = function (node) {
+        // check if tail
+        if (!node.next)
+            return node.value;
+        var prevNode = node.prev; // fetch prev node.
+        var nextNode = node.next; // fetch next node .
+        if (prevNode) // chck if node is not head node.
+            prevNode.next = nextNode; // point prev node next pointer  to next node.
+        else
+            this.head = nextNode;
+        nextNode.prev = prevNode; // point next node prev pointer to previous node.
+        this.length--; /// node is removed from middle and appended to tail.
+        // create a node to tail which becomes the recently used tail.
+        var node = this.append(node.key, node.value);
+        return node.value;
+    };
+    // prepends the new node and makes it as Head
+    DataCache.prototype.prepend = function (key, val) {
+        var newNode = new DataNode(key, val);
+        newNode.next = this.head;
+        this.head = newNode;
+        this.length++;
+        return newNode;
+    };
+    // remove the head node and returns key
+    DataCache.prototype.removeHead = function () {
+        var node = this.head;
+        this.head = this.head.next;
+        this.head.prev = null;
+        this.length--;
+        return node.key;
+    };
+    return DataCache;
+}());
+exports.DataCache = DataCache;

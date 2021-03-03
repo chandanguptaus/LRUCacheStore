@@ -1,49 +1,76 @@
-// crete a a Genric Type script class 
-class CacheStore<T>
-{
-   private map : Map<string,T>  // Use a map with key value pairs.
-   private limitentries:number;
-    constructor(entries:number) {
-        this.limitentries = entries;
-        this.map = new Map<string,T>();
-    }
-    setCache(key:string,value:any) : void{
-        if (this.map.size >= this.limitentries)
-        {
-            let keyToRemove = this.map.keys().next().value;
-            this.map.delete(keyToRemove);
-        }
-        this.map.set(key,value);
-    }
-    getCache(key:string):any
-    {
-       if (this.map.has(key))
-        {
-            let value = this.map.get(key);
-            this.map.delete(key);  // LRU
-            this.map.set(key,value);
-            return this.map.get(key);
-        }
-        return "Key doesn't exist"
-    }
-    cacheSize():number{
-        return this.map.size;
+import { throws } from "assert";
+
+class DataNode {
+    public prev: DataNode;
+    public key: string;
+    public value: any;
+    public next: DataNode;
+    constructor(key: string, val: any) {
+        this.key = key;
+        this.value = val;
     }
 }
+class DataCache {
+    private head: DataNode;
+    private tail: DataNode;
+    public length: number;
+    constructor() {
+        this.length = 0;
+        this.head = null;
+        this.tail = null;
+    }
+    append(key: string, val: any) {
+        const newNode = new DataNode(key, val);
+        if (!this.head) {
+            this.head = newNode;
+            this.tail = this.head;
+            this.length++;
+            return newNode;
+        }
+        newNode.prev = this.tail;
+        this.tail.next = newNode;
+        this.tail = newNode;
+        this.length++;
+        return newNode;
+    }
 
-var cache = new CacheStore<number>(2);
-cache.setCache('score1',100);
-cache.setCache('score2',200);
-cache.setCache('score3',300);
-cache.setCache('score4',400);
-cache.setCache('score5',500);
-cache.setCache('score6',600);
-cache.setCache('score7',700);
-cache.setCache('score8',800);
-cache.setCache('score9',900);
+    makerecent(node: DataNode): any {
 
-console.log(cache.getCache('score8'));  // SHOULD print
-console.log(cache.getCache('score9')); // SHOULD print
-console.log(cache.cacheSize());
-console.log(cache.getCache('score7'));  // these keys are evicted from cache.
-console.log(cache.getCache('score6'));  //evicted from cache.
+        // check if tail
+        if (!node.next) return node.value;
+
+        const prevNode = node.prev;  // fetch prev node.
+        const nextNode = node.next;   // fetch next node .
+        if (prevNode)  // chck if node is not head node.
+            prevNode.next = nextNode;   // point prev node next pointer  to next node.
+        else
+            this.head = nextNode;
+
+        nextNode.prev = prevNode;    // point next node prev pointer to previous node.
+
+        this.length-- /// node is removed from middle and appended to tail.
+        // create a node to tail which becomes the recently used tail.
+        var node = this.append(node.key, node.value);
+        return node.value;
+    }
+    // prepends the new node and makes it as Head
+    prepend(key: string, val: any) {
+        const newNode = new DataNode(key, val);
+        newNode.next = this.head;
+        this.head = newNode;
+        this.length++;
+        return newNode;
+    }
+    // remove the head node and returns key
+    removeHead(): string {
+        const node = this.head;
+        this.head = this.head.next;
+        this.head.prev = null;
+        this.length--;
+        return node.key;
+    }
+
+}
+
+export { DataCache }
+export { DataNode }
